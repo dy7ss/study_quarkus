@@ -13,12 +13,12 @@ public class LoggingInterceptor {
     @AroundInvoke
     Object around(InvocationContext ctx) throws Exception {
 
-        System.out.println("start1");
+        System.out.println("logging interceptror start");
 
         try {
             return ctx.proceed();
         } finally {
-            System.out.println("end");
+            System.out.println("logging interceptor end");
         }
     }
 }
