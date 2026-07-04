@@ -16,7 +16,11 @@ public class SampleResource {
 
     @GET
     public SampleResponse hello() {
-        String message =sampleApplication.getMessage();
+        String message = sampleApplication.getMessage();
+        System.out.println(message);
+
+        String message2 = sampleApplication.getMessage("type-value1", "type-value2");
+        System.out.println(message2);
         
         return new SampleResponse(message);
     }
