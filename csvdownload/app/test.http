@@ -1,0 +1,10 @@
+
+### CSVダウンロード
+GET http://localhost:8080/csv
+
+### DBに登録されている顧客情報をCSVでダウンロードする
+GET http://localhost:8080/csv/many?branchNo=1
+
+### DBに登録されている顧客情報をCSVでダウンロードする
+GET http://localhost:8080/csv/many?branchNo=3
+
