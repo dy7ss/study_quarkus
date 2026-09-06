@@ -39,6 +39,8 @@ public class CsvDownloadResource {
     @Path("/csv/timesleep")
     @Produces("text/csv")
     public Response stream() {
+        // ストリーミングレスポンスを行う
+        // $curl http://localhost:8080/csv/timesleep
         StreamingOutput output = outputStream -> {
             for (int i = 1; i <= 10; i++) {
                 outputStream.write(("data-" + i + "\n").getBytes());
@@ -58,9 +60,9 @@ public class CsvDownloadResource {
     @GET
     @Path("/csv/many")
     @Produces("text/csv")
-    // @Transactional
     public Response downloadManyCsv(@QueryParam("branchNo") Integer branchNo,
             @QueryParam("streaming") String streaming) {
+        // curl http://localhost:8080/csv/many?streaming=true
         String jpql = "SELECT c FROM Customer c WHERE 1 = 1";
         if (branchNo != null) {
             jpql += " AND c.branchNo = :branchNo";
@@ -88,6 +90,7 @@ public class CsvDownloadResource {
 
         boolean useStreaming = "true".equalsIgnoreCase(streaming);
         if (useStreaming) {
+            // ストリーミングレスポンスを行う想定だが、DBの読み込みが律速となり、HTTPレスポンスを一度に返している？
             StreamingOutput streamingOutput = outputStream -> {
                 try (var writer = new java.io.PrintWriter(
                         new java.io.OutputStreamWriter(outputStream, java.nio.charset.StandardCharsets.UTF_8))) {
