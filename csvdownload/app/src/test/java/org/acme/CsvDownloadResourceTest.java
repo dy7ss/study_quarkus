@@ -22,7 +22,7 @@ class CsvDownloadResourceTest {
     }
 
     @Test
-    void shouldDownloadManyCsvFromDatabase() {
+    void shouldDownloadManyCsvFromDatabaseWithoutStreaming() {
         given()
                 .when().get("/csv/many")
                 .then()
@@ -33,7 +33,19 @@ class CsvDownloadResourceTest {
     }
 
     @Test
-    void shouldDownloadManyCsvFilteredByBranchNo() {
+    void shouldDownloadManyCsvFromDatabaseWithStreaming() {
+        given()
+                .queryParam("streaming", "true")
+                .when().get("/csv/many")
+                .then()
+                .statusCode(200)
+                .contentType("text/csv")
+                .header("Content-Disposition", containsString("attachment; filename=\"customers.csv\""))
+                .body(is("customer_id,customer_name,branch_no\n1,customer_001,1\n2,customer_002,2\n3,customer_003,1\n4,customer_004,3\n5,customer_005,2\n"));
+    }
+
+    @Test
+    void shouldDownloadManyCsvFilteredByBranchNoWithoutStreaming() {
         given()
                 .queryParam("branchNo", 2)
                 .when().get("/csv/many")

@@ -1,11 +1,11 @@
 package org.acme;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -13,6 +13,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 
 @Path("/")
 public class CsvDownloadResource {
@@ -35,10 +36,31 @@ public class CsvDownloadResource {
     }
 
     @GET
+    @Path("/csv/timesleep")
+    @Produces("text/csv")
+    public Response stream() {
+        StreamingOutput output = outputStream -> {
+            for (int i = 1; i <= 10; i++) {
+                outputStream.write(("data-" + i + "\n").getBytes());
+                outputStream.flush();
+                try {
+                    System.out.println("1000ms sleep");
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(e);
+                }
+            }
+        };
+        return Response.ok(output).build();
+    }
+
+    @GET
     @Path("/csv/many")
     @Produces("text/csv")
-    @Transactional
-    public Response downloadManyCsv(@QueryParam("branchNo") Integer branchNo) {
+    // @Transactional
+    public Response downloadManyCsv(@QueryParam("branchNo") Integer branchNo,
+            @QueryParam("streaming") String streaming) {
         String jpql = "SELECT c FROM Customer c WHERE 1 = 1";
         if (branchNo != null) {
             jpql += " AND c.branchNo = :branchNo";
@@ -51,16 +73,38 @@ public class CsvDownloadResource {
         }
 
         List<Customer> customers = query
-                .setMaxResults(5)
+                // .setMaxResults(5)
                 .getResultList();
 
         String csv = "customer_id,customer_name,branch_no\n" +
                 customers.stream()
-                        .map(customer -> customer.getCustomerId() + "," + customer.getCustomerName() + "," + customer.getBranchNo())
+                        .map(customer -> customer.getCustomerId() + "," + customer.getCustomerName() + ","
+                                + customer.getBranchNo())
                         .collect(Collectors.joining("\n"));
 
         if (!customers.isEmpty()) {
             csv += "\n";
+        }
+
+        boolean useStreaming = "true".equalsIgnoreCase(streaming);
+        if (useStreaming) {
+            StreamingOutput streamingOutput = outputStream -> {
+                try (var writer = new java.io.PrintWriter(
+                        new java.io.OutputStreamWriter(outputStream, java.nio.charset.StandardCharsets.UTF_8))) {
+                    writer.println("customer_id,customer_name,branch_no");
+                    for (Customer customer : customers) {
+                        writer.printf("%d,%s,%d%n",
+                                customer.getCustomerId(),
+                                customer.getCustomerName(),
+                                customer.getBranchNo());
+                    }
+                }
+            };
+
+            return Response.ok(streamingOutput)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"customers.csv\"")
+                    .type(MediaType.valueOf("text/csv; charset=UTF-8"))
+                    .build();
         }
 
         return Response.ok(csv)
