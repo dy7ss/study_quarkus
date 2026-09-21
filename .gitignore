@@ -1,0 +1,23 @@
+# Gradle / Java
+.gradle/
+**/build/
+**/bin/
+**/out/
+**/tmp/
+**/generated/
+**/generated-sources/
+**/generated-test-sources/
+*.class
+*.log
+
+# Quarkus / IDE
+.vscode/
+.idea/
+*.iml
+
+# Local output folders
+output/
+
+# OS
+.DS_Store
+Thumbs.db

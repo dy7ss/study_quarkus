@@ -1,0 +1,4 @@
+### Zenn RSS feed
+###
+GET http://localhost:8080/feed
+Accept: application/json
