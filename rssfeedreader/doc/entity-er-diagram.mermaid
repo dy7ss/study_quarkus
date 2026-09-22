@@ -1,0 +1,89 @@
+# Entity ER Diagram
+
+```mermaid
+erDiagram
+    USERS {
+        BIGINT user_id PK "AUTO_INCREMENT"
+        VARCHAR(255) user_name "NOT NULL"
+        DATETIME created_at "NOT NULL"
+        DATETIME updated_at "NOT NULL"
+    }
+
+    FEEDS {
+        BIGINT feed_id PK "AUTO_INCREMENT"
+        VARCHAR(2048) feed_url UK "NOT NULL"
+        VARCHAR(255) title "NOT NULL"
+        TEXT description
+        VARCHAR(2048) site_url
+        DATETIME last_fetched_at
+        DATETIME created_at "NOT NULL"
+        DATETIME updated_at "NOT NULL"
+    }
+
+    ARTICLES {
+        BIGINT article_id PK "AUTO_INCREMENT"
+        BIGINT feed_id FK "NOT NULL"
+        VARCHAR(2048) external_article_id
+        VARCHAR(500) title "NOT NULL"
+        VARCHAR(2048) article_url UK "NOT NULL"
+        VARCHAR(255) author
+        TEXT summary
+        DATETIME published_at
+        DATETIME fetched_at "NOT NULL"
+        DATETIME created_at "NOT NULL"
+        DATETIME updated_at "NOT NULL"
+    }
+
+    USER_ARTICLES {
+        BIGINT user_id PK "FK, NOT NULL"
+        BIGINT article_id PK "FK, NOT NULL"
+        BOOLEAN is_read "NOT NULL, DEFAULT FALSE"
+        BOOLEAN is_bookmarked "NOT NULL, DEFAULT FALSE"
+        DATETIME first_read_at
+        DATETIME last_read_at
+        DATETIME bookmarked_at
+        DATETIME created_at "NOT NULL"
+        DATETIME updated_at "NOT NULL"
+    }
+
+    TAGS {
+        BIGINT tag_id PK "AUTO_INCREMENT"
+        VARCHAR(100) name UK "NOT NULL"
+        DATETIME created_at "NOT NULL"
+    }
+
+    ARTICLE_TAGS {
+        BIGINT article_id PK "FK, NOT NULL"
+        BIGINT tag_id PK "FK, NOT NULL"
+    }
+
+    KNOWLEDGE_NOTES {
+        BIGINT knowledge_note_id PK "AUTO_INCREMENT"
+        BIGINT user_id FK "NOT NULL"
+        BIGINT article_id FK
+        VARCHAR(500) title "NOT NULL"
+        TEXT content "NOT NULL"
+        DATETIME created_at "NOT NULL"
+        DATETIME updated_at "NOT NULL"
+    }
+
+    FEEDS ||--o{ ARTICLES : "has"
+    USERS ||--o{ USER_ARTICLES : "marks"
+    ARTICLES ||--o{ USER_ARTICLES : "is marked by"
+    ARTICLES ||--o{ ARTICLE_TAGS : "has"
+    TAGS ||--o{ ARTICLE_TAGS : "is assigned to"
+    USERS ||--o{ KNOWLEDGE_NOTES : "writes"
+    ARTICLES o|--o{ KNOWLEDGE_NOTES : "references"
+```
+
+## Entity Mapping
+
+| Table | Entity | Primary key |
+| --- | --- | --- |
+| `users` | `User` | `userId` |
+| `feeds` | `Feed` | `feedId` |
+| `articles` | `Article` | `articleId` |
+| `user_articles` | `UserArticle` | `UserArticleId(userId, articleId)` |
+| `tags` | `Tag` | `tagId` |
+| `article_tags` | `ArticleTag` | `ArticleTagId(articleId, tagId)` |
+| `knowledge_notes` | `KnowledgeNote` | `knowledgeNoteId` |

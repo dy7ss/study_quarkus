@@ -1,0 +1,689 @@
+openapi: 3.0.3
+info:
+  title: RSS Reader API
+  description: |
+    RSS フィードを登録し、記事の閲覧・検索・既読管理・後で読む保存・
+    知識メモの記録を行う API。
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+tags:
+  - name: Feeds
+    description: RSS フィードの登録・管理
+  - name: Articles
+    description: 記事の取得・検索
+  - name: User articles
+    description: ユーザーごとの既読・後で読む状態
+  - name: Knowledge notes
+    description: 記事から記録した知識メモ
+paths:
+  /feeds:
+    post:
+      tags: [Feeds]
+      summary: Feed を登録する
+      description: S-01。RSS Feed URL を登録し、Feed のメタデータを保存する。
+      operationId: registerFeed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeedRequest'
+      responses:
+        '201':
+          description: Feed が登録された
+          headers:
+            Location:
+              description: 登録された Feed の URL
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: 同じ URL の Feed が既に登録されている
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    get:
+      tags: [Feeds]
+      summary: 登録済み Feed を取得する
+      operationId: listFeeds
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Feed のページ一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /feeds/{feedId}:
+    parameters:
+      - $ref: '#/components/parameters/FeedId'
+    get:
+      tags: [Feeds]
+      summary: Feed 詳細を取得する
+      operationId: getFeed
+      responses:
+        '200':
+          description: Feed 詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Feeds]
+      summary: Feed の登録を解除する
+      operationId: deleteFeed
+      responses:
+        '204':
+          description: Feed が削除された
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /articles:
+    get:
+      tags: [Articles]
+      summary: 記事を取得・検索する
+      description: |
+        S-02、S-05、S-06。未読記事、新着記事、過去記事検索、
+        技術分野タグによる絞り込みを同じ一覧 API で提供する。
+        unread=true の場合、対象ユーザーの未読記事を返す。
+      operationId: listArticles
+      parameters:
+        - $ref: '#/components/parameters/UserIdQuery'
+        - name: unread
+          in: query
+          description: true の場合、対象ユーザーの未読記事だけを返す
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: query
+          in: query
+          description: タイトル、概要、著者を対象とする検索語
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+        - name: feedId
+          in: query
+          description: Feed ID による絞り込み
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: tag
+          in: query
+          description: 技術分野を表すタグ名による絞り込み
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: publishedFrom
+          in: query
+          description: 公開日時の下限（ISO 8601）
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: publishedTo
+          in: query
+          description: 公開日時の上限（ISO 8601）
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: 条件に一致する記事のページ一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /articles/{articleId}:
+    parameters:
+      - $ref: '#/components/parameters/ArticleId'
+    get:
+      tags: [Articles]
+      summary: 記事詳細を取得する
+      description: S-03。記事情報と、指定されたユーザーの既読・後で読む状態を返す。
+      operationId: getArticle
+      parameters:
+        - $ref: '#/components/parameters/UserIdQuery'
+      responses:
+        '200':
+          description: 記事詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /users/{userId}/articles/{articleId}/read:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/ArticleId'
+    post:
+      tags: [User articles]
+      summary: 記事を既読にする
+      description: S-03。記事を既読として記録する。呼び出しは冪等である。
+      operationId: markArticleAsRead
+      responses:
+        '204':
+          description: 記事が既読になった
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [User articles]
+      summary: 記事を未読に戻す
+      operationId: markArticleAsUnread
+      responses:
+        '204':
+          description: 記事が未読になった
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /users/{userId}/articles/{articleId}/bookmark:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/ArticleId'
+    put:
+      tags: [User articles]
+      summary: 記事を後で読むに保存する
+      description: S-04。記事をユーザーの後で読む一覧に保存する。呼び出しは冪等である。
+      operationId: bookmarkArticle
+      responses:
+        '204':
+          description: 記事が保存された
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [User articles]
+      summary: 後で読む保存を解除する
+      description: S-04。記事を後で読む一覧から削除する。
+      operationId: unbookmarkArticle
+      responses:
+        '204':
+          description: 保存が解除された
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /users/{userId}/knowledge-notes:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    post:
+      tags: [Knowledge notes]
+      summary: 知識メモを記録する
+      description: S-07。読んだ記事から知識を記録する。articleId は任意。
+      operationId: createKnowledgeNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateKnowledgeNoteRequest'
+      responses:
+        '201':
+          description: 知識メモが作成された
+          headers:
+            Location:
+              description: 作成された知識メモの URL
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeNote'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    get:
+      tags: [Knowledge notes]
+      summary: 知識メモを一覧取得する
+      description: S-07。ユーザーが記録した知識メモを取得する。
+      operationId: listKnowledgeNotes
+      parameters:
+        - name: articleId
+          in: query
+          description: 関連記事 ID による絞り込み
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: query
+          in: query
+          description: メモのタイトル・本文を対象とする検索語
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: 知識メモのページ一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeNotePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /users/{userId}/knowledge-notes/{knowledgeNoteId}:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/KnowledgeNoteId'
+    get:
+      tags: [Knowledge notes]
+      summary: 知識メモ詳細を取得する
+      operationId: getKnowledgeNote
+      responses:
+        '200':
+          description: 知識メモ詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeNote'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Knowledge notes]
+      summary: 知識メモを更新する
+      operationId: updateKnowledgeNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateKnowledgeNoteRequest'
+      responses:
+        '200':
+          description: 知識メモが更新された
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeNote'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Knowledge notes]
+      summary: 知識メモを削除する
+      operationId: deleteKnowledgeNote
+      responses:
+        '204':
+          description: 知識メモが削除された
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      description: ユーザー ID
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    UserIdQuery:
+      name: userId
+      in: query
+      required: false
+      description: ユーザー ID。指定時はユーザーごとの状態を返す
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    FeedId:
+      name: feedId
+      in: path
+      required: true
+      description: Feed ID
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    ArticleId:
+      name: articleId
+      in: path
+      required: true
+      description: 記事 ID
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    KnowledgeNoteId:
+      name: knowledgeNoteId
+      in: path
+      required: true
+      description: 知識メモ ID
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    Page:
+      name: page
+      in: query
+      required: false
+      description: ページ番号（0 始まり）
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      required: false
+      description: 1 ページあたりの件数
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
+    Sort:
+      name: sort
+      in: query
+      required: false
+      description: ソート順。例 `publishedAt,desc`
+      schema:
+        type: string
+        default: publishedAt,desc
+  responses:
+    BadRequest:
+      description: リクエストが不正
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: リソースが見つからない
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadGateway:
+      description: 外部 RSS の応答を解釈できない
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: 外部 RSS が利用できない
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    CreateFeedRequest:
+      type: object
+      required: [feedUrl]
+      properties:
+        feedUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+          description: RSS Feed URL
+    Feed:
+      type: object
+      required: [feedId, feedUrl, title, createdAt, updatedAt]
+      properties:
+        feedId:
+          type: integer
+          format: int64
+          example: 1
+        feedUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        siteUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+          nullable: true
+        lastFetchedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ArticleSummary:
+      type: object
+      required: [articleId, feedId, title, articleUrl, fetchedAt, createdAt, updatedAt, userArticle]
+      properties:
+        articleId:
+          type: integer
+          format: int64
+        feedId:
+          type: integer
+          format: int64
+        feedTitle:
+          type: string
+          nullable: true
+        title:
+          type: string
+          maxLength: 500
+        articleUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+        author:
+          type: string
+          maxLength: 255
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        userArticle:
+          $ref: '#/components/schemas/UserArticleStatus'
+        fetchedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ArticleDetail:
+      allOf:
+        - $ref: '#/components/schemas/ArticleSummary'
+      description: 記事詳細。現在のデータモデルでは本文ではなく概要と外部記事 URL を保持する。
+    UserArticleStatus:
+      type: object
+      required: [isRead, isBookmarked]
+      properties:
+        isRead:
+          type: boolean
+        isBookmarked:
+          type: boolean
+        firstReadAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastReadAt:
+          type: string
+          format: date-time
+          nullable: true
+        bookmarkedAt:
+          type: string
+          format: date-time
+          nullable: true
+    Tag:
+      type: object
+      required: [tagId, name]
+      properties:
+        tagId:
+          type: integer
+          format: int64
+        name:
+          type: string
+          maxLength: 100
+    CreateKnowledgeNoteRequest:
+      type: object
+      required: [title, content]
+      properties:
+        articleId:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        content:
+          type: string
+          minLength: 1
+    UpdateKnowledgeNoteRequest:
+      type: object
+      minProperties: 1
+      properties:
+        articleId:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        content:
+          type: string
+          minLength: 1
+    KnowledgeNote:
+      type: object
+      required: [knowledgeNoteId, title, content, createdAt, updatedAt]
+      properties:
+        knowledgeNoteId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        articleId:
+          type: integer
+          format: int64
+          nullable: true
+        title:
+          type: string
+          maxLength: 500
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    FeedPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Feed'
+    ArticlePage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArticleSummary'
+    KnowledgeNotePage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/KnowledgeNote'
+    PageMetadata:
+      type: object
+      required: [page, size, total]
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 0
+        size:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Resource was not found.
+        code:
+          type: string
+          nullable: true
+          example: RESOURCE_NOT_FOUND
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
