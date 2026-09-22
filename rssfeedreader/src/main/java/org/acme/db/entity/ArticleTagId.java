@@ -1,4 +1,4 @@
-package org.acme;
+package org.acme.db.entity;
 
 import java.io.Serializable;
 import java.util.Objects;

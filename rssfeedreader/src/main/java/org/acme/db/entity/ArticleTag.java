@@ -1,4 +1,4 @@
-package org.acme;
+package org.acme.db.entity;
 
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
