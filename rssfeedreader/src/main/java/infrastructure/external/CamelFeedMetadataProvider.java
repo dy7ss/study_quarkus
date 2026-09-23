@@ -11,6 +11,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import com.rometools.rome.feed.synd.SyndFeed;
 
 import domain.port.FeedMetadataProvider;
+import infrastructure.exception.FeedParseException;
+import infrastructure.exception.FeedUnavailableException;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
@@ -56,19 +58,4 @@ public class CamelFeedMetadataProvider implements FeedMetadataProvider {
         }
     }
 
-    public static class FeedUnavailableException extends RuntimeException {
-        public FeedUnavailableException(String message) {
-            super(message);
-        }
-
-        public FeedUnavailableException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
-
-    public static class FeedParseException extends RuntimeException {
-        public FeedParseException(String message) {
-            super(message);
-        }
-    }
 }

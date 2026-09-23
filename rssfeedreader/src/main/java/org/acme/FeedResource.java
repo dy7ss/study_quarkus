@@ -1,5 +1,7 @@
 package org.acme;
 
+import infrastructure.exception.FeedParseException;
+import infrastructure.exception.FeedUnavailableException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -18,11 +20,11 @@ public class FeedResource {
     public Response getFeed() {
         try {
             return Response.ok(feedClient.read()).build();
-        } catch (FeedClient.FeedUnavailableException e) {
+        } catch (FeedUnavailableException e) {
             return Response.status(Response.Status.SERVICE_UNAVAILABLE)
                     .entity(new ErrorResponse("RSS feed is temporarily unavailable"))
                     .build();
-        } catch (FeedClient.FeedParseException e) {
+        } catch (FeedParseException e) {
             return Response.status(Response.Status.BAD_GATEWAY)
                     .entity(new ErrorResponse("RSS feed has an invalid format"))
                     .build();

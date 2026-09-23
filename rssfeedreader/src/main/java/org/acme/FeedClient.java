@@ -12,6 +12,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 
+import infrastructure.exception.FeedParseException;
+import infrastructure.exception.FeedUnavailableException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -85,23 +87,4 @@ public class FeedClient {
     public record FeedArticle(String title, String link, String publishedAt, String author, String description) {
     }
 
-    static class FeedUnavailableException extends RuntimeException {
-        FeedUnavailableException(String message) {
-            super(message);
-        }
-
-        FeedUnavailableException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
-
-    static class FeedParseException extends RuntimeException {
-        FeedParseException(String message) {
-            super(message);
-        }
-
-        FeedParseException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
 }
