@@ -1,0 +1,42 @@
+### Local Quarkus dev mode
+GET http://localhost:8080/hello
+Accept: application/json
+
+### Lambda mock event server (HTTP API)
+POST http://localhost:8081/_lambda_
+Content-Type: application/json
+Accept: application/json
+
+{
+  "version": "2.0",
+  "routeKey": "GET /hello",
+  "rawPath": "/hello",
+  "rawQueryString": "",
+  "headers": {
+    "accept": "application/json",
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "local",
+    "domainName": "localhost",
+    "domainPrefix": "localhost",
+    "http": {
+      "method": "GET",
+      "path": "/hello",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "127.0.0.1",
+      "userAgent": "vscode-restclient"
+    },
+    "requestId": "local-1",
+    "routeKey": "GET /hello",
+    "stage": "$default",
+    "time": "23/Sep/2026:00:00:00 +0000",
+    "timeEpoch": 1750000000000
+  },
+  "isBase64Encoded": false
+}
+
+### Local Lambda invocation via SAM-like routing
+GET http://localhost:3000/hello
+Accept: application/json
