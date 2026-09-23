@@ -52,8 +52,7 @@ public class FeedApplicationService {
 
     @Transactional
     public void delete(long id) {
-        if (!repository.deleteById(id)) {
-            throw new FeedNotFoundException(id);
-        }
+        get(id);
+        repository.deleteById(id);
     }
 }

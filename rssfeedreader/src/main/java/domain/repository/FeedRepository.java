@@ -16,5 +16,5 @@ public interface FeedRepository {
 
     long count();
 
-    boolean deleteById(long id);
+    void deleteById(long id);
 }

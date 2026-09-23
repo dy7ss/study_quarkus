@@ -48,12 +48,11 @@ public class JpaFeedRepository implements FeedRepository {
     }
 
     @Override
-    public boolean deleteById(long id) {
+    public void deleteById(long id) {
         FeedEntity entity = entityManager.find(FeedEntity.class, id);
-        if (entity == null)
-            return false;
+        if (entity == null) {
+            throw new IllegalStateException("Feed could not be deleted: " + id);
+        }
         entityManager.remove(entity);
-        return true;
     }
-
 }
